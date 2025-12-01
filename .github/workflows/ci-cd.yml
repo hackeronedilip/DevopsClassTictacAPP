@@ -35,11 +35,28 @@ jobs:
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
+      - name: Setup AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
       - name: Build and Push Docker Image
         env:
           AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
           COMMIT_SHA: ${{ github.sha }}
         run: |
           SHORT_SHA=${COMMIT_SHA::7}
-          docker build -t $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/tictac:$SHORT_SHA .
-          docker push $AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/tictac:$SHORT_SHA
+          IMAGE="$AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/tictac:$SHORT_SHA"
+
+          echo "Building Docker image: $IMAGE"
+          docker build -t $IMAGE .
+
+          echo "Pushing Docker image to ECR..."
+          docker push $IMAGE
+
+          echo "Image pushed successfully!"
