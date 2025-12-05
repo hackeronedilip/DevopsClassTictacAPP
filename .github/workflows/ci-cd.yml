@@ -57,11 +57,8 @@ jobs:
 
       - name: Scan the Docker Image
         uses: aquasecurity/trivy-action@0.20.0
-        env:
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-          COMMIT_SHA: ${{ github.sha }}
         with:
-          image-ref: "$AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/tictac:$SHORT_SHA"
+          image-ref: "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/tictac:${{ github.sha }}
           format: 'sarif'
           output: 'docker-result.sarif'
       
