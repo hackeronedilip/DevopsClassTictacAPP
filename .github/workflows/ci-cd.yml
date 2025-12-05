@@ -126,14 +126,14 @@ jobs:
       # # --------------------------
       # # Deploy to Kubernetes
       # # --------------------------
-      # - name: Deploy to Kubernetes
-      #   env:
-      #     IMAGE: ${{ env.IMAGE }}
-      #   run: |
-      #     echo "Deploying image: $IMAGE to EKS cluster: ${{ secrets.EKS_NAME }}"
+      - name: Deploy to Kubernetes
+        env:
+          IMAGE: ${{ env.IMAGE }}
+        run: |
+          echo "Deploying image: $IMAGE to EKS cluster: ${{ secrets.EKS_NAME }}"
 
-      #     kubectl set image deployment/tictac-deployment \
-      #       tictac=$IMAGE --record
+          kubectl set image deployment/tictac-deployment \
+            tictac=$IMAGE --record
 
-      #     echo "Waiting for rollout to finish..."
-      #     kubectl rollout status deployment/tictac-deployment
+          echo "Waiting for rollout to finish..."
+          kubectl rollout status deployment/tictac-deployment
