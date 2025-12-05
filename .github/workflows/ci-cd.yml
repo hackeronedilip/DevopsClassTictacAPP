@@ -1,4 +1,5 @@
 name: CI/CD Pipeline
+
 on:
   push:
     branches:
@@ -44,41 +45,46 @@ jobs:
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
 
+      # --------------------------
+      # Build Image using SHORT SHA
+      # --------------------------
       - name: Build Docker Image
+        id: build_image
         env:
           AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
           COMMIT_SHA: ${{ github.sha }}
         run: |
           SHORT_SHA=${COMMIT_SHA::7}
           IMAGE="$AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/tictac:$SHORT_SHA"
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
 
           echo "Building Docker image: $IMAGE"
           docker build -t $IMAGE .
 
+      # --------------------------
+      # Trivy Scan of Built Image
+      # --------------------------
       - name: Scan the Docker Image
         uses: aquasecurity/trivy-action@0.20.0
         with:
-          image-ref: "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/tictac:${{ github.sha }}"
+          image-ref: "${{ env.IMAGE }}"
           format: 'sarif'
           output: 'docker-result.sarif'
           scan-type: image
           ignore-unfixed: false
           vuln-type: os,library
           severity: HIGH,CRITICAL
-      
-      - name: Upload trivy output in Github
+
+      - name: Upload Trivy output to GitHub
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'docker-result.sarif'
 
-
+      # --------------------------
+      # Push Image only when Scan Passes
+      # --------------------------
       - name: Push Docker Image
-        env:
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-          COMMIT_SHA: ${{ github.sha }}
+        if: success()
         run: |
-          SHORT_SHA=${COMMIT_SHA::7}
-          IMAGE="$AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/tictac:$SHORT_SHA"
-
+          echo "Pushing Image: $IMAGE"
           docker push $IMAGE
-          
