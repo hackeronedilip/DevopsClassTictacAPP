@@ -115,21 +115,25 @@ jobs:
 
       - name: Configure kubectl for EKS
         run: |
-          aws eks update-kubeconfig \
-            --region ap-south-1 \
-            --name ${{ secrets.EKS_NAME }}
+          kubectl config set-cluster ${{ secrets.EKS_NAME }} --server=${{ secrets.EKS_ENDPOINT }} --certificate-authority=ca.crt
 
-      # --------------------------
-      # Deploy to Kubernetes
-      # --------------------------
-      - name: Deploy to Kubernetes
-        env:
-          IMAGE: ${{ env.IMAGE }}
-        run: |
-          echo "Deploying image: $IMAGE to EKS cluster: ${{ secrets.EKS_NAME }}"
+          kubectl config set-credentials github-user --token=${{ secrets.EKS_TOKEN }}
 
-          kubectl set image deployment/tictac-deployment \
-            tictac-container=$IMAGE --record
+          kubectl config set-context ${{ secrets.EKS_NAME }} --cluster=${{ secrets.EKS_NAME }} --user=github-user --namespace=default
 
-          echo "Waiting for rollout to finish..."
-          kubectl rollout status deployment/tictac-deployment
+          kubectl config use-context ${{ secrets.EKS_NAME }}
+
+      # # --------------------------
+      # # Deploy to Kubernetes
+      # # --------------------------
+      # - name: Deploy to Kubernetes
+      #   env:
+      #     IMAGE: ${{ env.IMAGE }}
+      #   run: |
+      #     echo "Deploying image: $IMAGE to EKS cluster: ${{ secrets.EKS_NAME }}"
+
+      #     kubectl set image deployment/tictac-deployment \
+      #       tictac=$IMAGE --record
+
+      #     echo "Waiting for rollout to finish..."
+      #     kubectl rollout status deployment/tictac-deployment
