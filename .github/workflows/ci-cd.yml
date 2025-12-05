@@ -18,13 +18,13 @@ jobs:
       # --------------------------
       # Checkout Code
       # --------------------------
-      - name: Checkout code from the repo
+      - name: Checkout code
         uses: actions/checkout@v2
 
       # --------------------------
       # Node Setup
       # --------------------------
-      - name: Setup Node.js Environment
+      - name: Setup Node.js
         uses: actions/setup-node@v2
         with:
           node-version: '14'
@@ -33,7 +33,7 @@ jobs:
         run: npm install
 
       # --------------------------
-      # SonarQube Scanner Setup
+      # SonarQube Scanner
       # --------------------------
       - name: Install SonarQube Scanner
         run: |
@@ -50,16 +50,16 @@ jobs:
             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
       # --------------------------
-      # AWS Auth for ECR (us-east-1)
+      # AWS Credentials for ECR
       # --------------------------
-      - name: Setup AWS Credentials (ECR Region)
+      - name: Configure AWS Credentials for ECR
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
-      - name: Login to Amazon ECR (us-east-1)
+      - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
 
       # --------------------------
@@ -83,7 +83,7 @@ jobs:
       # --------------------------
       # Trivy Security Scan
       # --------------------------
-      - name: Scan the Docker Image
+      - name: Scan Docker Image
         uses: aquasecurity/trivy-action@0.20.0
         with:
           image-ref: "${{ env.IMAGE }}"
@@ -95,7 +95,7 @@ jobs:
           severity: HIGH,CRITICAL
 
       # --------------------------
-      # Push Image ONLY on Successful Scan
+      # Push Docker Image if Scan Succeeds
       # --------------------------
       - name: Push Docker Image
         if: success()
@@ -104,20 +104,24 @@ jobs:
           docker push $IMAGE
 
       # --------------------------
-      # Configure EKS (ap-south-1)
+      # AWS Credentials for EKS
       # --------------------------
-      - name: Setup AWS Credentials (EKS Region)
+      - name: Configure AWS Credentials for EKS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
-      - name: Configure kubectl for EKS
+      # --------------------------
+      # Configure kubectl for EKS
+      # --------------------------
+      - name: Configure kubectl
         run: |
           aws eks update-kubeconfig \
             --name ${{ secrets.EKS_NAME }} \
-            --region ap-south-1
+            --region ap-south-1 \
+            --alias tictac-eks
 
       # --------------------------
       # Deploy to Kubernetes
@@ -128,7 +132,9 @@ jobs:
         run: |
           echo "Deploying image: $IMAGE to EKS cluster: ${{ secrets.EKS_NAME }}"
 
+          # Update deployment image
           kubectl set image deployment/tictac-deployment tictac=$IMAGE
 
+          # Wait for rollout
           echo "Waiting for rollout to finish..."
           kubectl rollout status deployment/tictac-deployment
