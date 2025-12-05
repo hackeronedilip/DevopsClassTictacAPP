@@ -56,7 +56,15 @@ jobs:
           echo "Building Docker image: $IMAGE"
           docker build -t $IMAGE .
 
-          echo "Pushing Docker image to ECR..."
-          docker push $IMAGE
+      - name: Scan the Docker Image
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          image-ref: "$AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/tictac:$SHORT_SHA"
+          format: 'sarif'
+          output: 'docker-result.sarif'
+      
+      - name: Upload trivy output in Github
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'docker-result.sarif'
 
-          echo "Image pushed successfully!"
