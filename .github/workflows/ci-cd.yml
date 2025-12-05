@@ -5,8 +5,6 @@ on:
     branches:
       - test
 
-
-
 jobs:
   build_and_scan:
     runs-on: ubuntu-latest
@@ -63,7 +61,9 @@ jobs:
         run: |
           SHORT_SHA=${COMMIT_SHA::7}
           IMAGE="$AWS_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/tictac:$SHORT_SHA"
+
           echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+          echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_ENV
 
           echo "Building Docker image: $IMAGE"
           docker build -t $IMAGE .
@@ -82,16 +82,11 @@ jobs:
           vuln-type: os,library
           severity: HIGH,CRITICAL
 
-      # - name: Upload Trivy output to GitHub
-      #   uses: github/codeql-action/upload-sarif@v3
-      #   with:
-      #     sarif_file: 'docker-result.sarif'
-
       # --------------------------
       # Push Image only when Scan Passes
       # --------------------------
       - name: Push Docker Image
         if: success()
         run: |
-          echo "Pushing Image: $IMAGE"
+          echo "Pushing Docker image: $IMAGE"
           docker push $IMAGE
